@@ -37,6 +37,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 //   figma.closePlugin();
 // };
 figma.showUI(__html__);
+figma.ui.resize(325, 450);
 figma.ui.onmessage = (msg) => __awaiter(this, void 0, void 0, function* () {
     if (msg.type == 'req') {
         const { contents } = msg.payload;
@@ -45,21 +46,44 @@ figma.ui.onmessage = (msg) => __awaiter(this, void 0, void 0, function* () {
                 const frame = figma.createFrame();
                 frame.name = block.title ? block.title : block.content;
                 frame.resize(500, 600);
-                frame.x = i * 550;
+                const xPos = i % 10;
+                const yPos = Math.floor((i / 10) % 10) - 1;
+                frame.x = xPos * 550;
+                frame.y = yPos * 650;
                 const rect = figma.createRectangle();
+                rect.name = 'Image';
                 rect.resize(400, 400);
                 rect.x = 50;
                 rect.y = 50;
                 const newImage = figma.createImage(block.image.hash);
                 rect.fills = [{ type: 'IMAGE', scaleMode: 'FIT', imageHash: newImage.hash }];
                 frame.appendChild(rect);
+                if (block.source && block.source.url) {
+                    const text = figma.createText();
+                    text.x = 50;
+                    text.y = 475;
+                    text.resize(400, 100);
+                    frame.appendChild(text);
+                    yield figma.loadFontAsync(text.fontName);
+                    text.characters = block.source.url;
+                    if (text.characters.length > 120) {
+                        text.fontSize = 16;
+                    }
+                    else {
+                        text.fontSize = 20;
+                    }
+                }
+                frame.expanded = false;
                 figma.currentPage.appendChild(frame);
             }
             else if (!block.image) {
                 const frame = figma.createFrame();
                 frame.name = block.title ? block.title : block.content;
                 frame.resize(500, 600);
-                frame.x = i * 550;
+                const xPos = i % 10;
+                const yPos = Math.floor((i / 10) % 10) - 1;
+                frame.x = xPos * 550;
+                frame.y = yPos * 650;
                 const text = figma.createText();
                 text.x = 50;
                 text.y = 50;
@@ -68,7 +92,10 @@ figma.ui.onmessage = (msg) => __awaiter(this, void 0, void 0, function* () {
                 yield figma.loadFontAsync(text.fontName);
                 text.characters = block.content;
                 text.fontSize = 32;
+                frame.expanded = false;
+                figma.currentPage.appendChild(frame);
             }
         }));
     }
+    figma.closePlugin();
 });

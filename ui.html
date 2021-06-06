@@ -15,15 +15,116 @@ document.getElementById('cancel').onclick = () => {
 
 </script> -->
 
-<h1>are.na mood board</h1>
+<style>
+  body {
+    padding: 0.5rem;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0.25rem;
+    margin-top: 1rem;
+  }
+
+  h1 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    font-size: 0.75rem;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  p:last-of-type {
+    margin: 0;
+  }
+
+  label {
+    font-size: 0.75rem;
+    font-family: Arial, Helvetica, sans-serif;
+    margin-bottom: 0.25rem;
+  }
+
+  input {
+    height: fit-content;
+    box-sizing: border-box;
+    border: 1px solid grey;
+    border-radius: none;
+    padding: 0.3rem;
+    margin-bottom: 0.5rem;
+
+    font-size: 0.75rem;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  input:focus {
+    outline: none;
+    border: 1px solid black;
+  }
+
+  button {
+    height: fit-content;
+    box-sizing: border-box;
+    border: 1px solid grey;
+    border-radius: none;
+    padding: 0.3rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  button:hover {
+    border: 1px solid black;
+  }
+
+  button:focus {
+    outline: none;
+    border: 1px solid black;
+  }
+
+  .colored {
+    color: blue;
+  }
+
+  .errorMessage {
+    color: red;
+    height: 1rem;
+    padding-bottom: 1rem;
+    font-size: 0.75rem;
+  }
+</style>
+
+<h1>Import references from Are.na into Figma!</h1>
 
 <div>
-  <p>Enter in the slug of any of your channels and we'll populate the figma page with all the blocks!</p>
+  <p>Enter in the slug of any public or closed Are.na channels and we'll populate the figma page with all the blocks!</p>
 
-  <label for="channel">Channel slug</label>
-  <input type="text" id="channel">
+  <p>you can get the slug of the channel from the URL. For example, the slug for:
+  <p>https://www.are.na/user/channel-123</p>
+  <p>is <span class="colored">channel-123</span></p>
 
-  <button id="submit">Submit</button>
+  <form>
+    <label for="channel">Enter the channel's slug</label>
+    <input type="text" id="channel" placeholder="channel-slug" required>
+    <button id="submit">Submit</button>
+  </form>
+
+  <span id="error" class="errorMessage"></span>
+
+  <p>Note: Only text, link, and image blocks are currently supported. Image or link blocks with a gif are also not supported.</p>
+
+  <p>Note: The maximum number of blocks that will be imported is 50. Blocks will be imported in the order they were added to the channel (oldest blocks first).</p>
+  
 </div>
 
 <script>
@@ -42,52 +143,68 @@ document.getElementById('cancel').onclick = () => {
 
   const textbox = document.getElementById('channel');
   const btn = document.getElementById('submit');
+  const errorMssg = document.getElementById('error');
 
   let channelSlug = '';
 
-  btn.addEventListener('click', async () => {
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault();
     channelSlug = textbox.value;
 
-    const arenaUrl = `https://api.are.na/v2/channels/${channelSlug}?per=10`;
+    if (channelSlug != '') {
 
-    var request = new XMLHttpRequest()
-    request.overrideMimeType("application/json");
-    request.open('GET', arenaUrl);
-    request.onload = async () => {
-      const channelObj = JSON.parse(request.responseText);
-      let count = 0;
+      const arenaUrl = `https://api.are.na/v2/channels/${channelSlug}?per=50`;
 
-      const imageForEach = new Promise((resolve, reject) => {
-        channelObj.contents.forEach((block, i, array) => {
-          if (block.image && !block.image.content_type.includes('gif')) {
-            const canvas = document.createElement('canvas')
-            const ctx = canvas.getContext('2d')
-            const art = new Image()
-            art.crossOrigin = 'Anonymous'
-            art.src = block.image.original.url;
-            art.onload = async () => {
-              canvas.width = art.width
-              canvas.height = art.height
-              ctx.drawImage(art, 0, 0)
-              const imageData = ctx.getImageData(0, 0, art.width, art.height)
-              const newBytes = await encode(canvas, ctx, imageData)
-              block.image.hash = newBytes;
-              count++;
-              if (count == array.length) resolve();
-            }
-          } else {
-            count++;
-            if (count == array.length) resolve();
-          }
-        })
-      })
+      var request = new XMLHttpRequest()
+      request.overrideMimeType("application/json");
+      request.open('GET', arenaUrl);
+      request.onload = async () => {
+        const channelObj = JSON.parse(request.responseText);
+        let count = 0;
 
-      imageForEach.then(() => {
-        const messageObj = {pluginMessage: {type: 'req', payload: channelObj}};
-        parent.postMessage(messageObj, '*')
-      })
-    };
-    request.send()
+        if (channelObj.message == 'Not Found' || channelObj.code == 404) {
+          errorMssg.innerText = 'No channel with that slug found :('
+        } else if (channelObj.message == 'Unauthorized' || channelObj.code == 401) {
+          errorMssg.innerText = 'Can\t import blocks from a private channel :('
+        } else {
+          btn.innerText = 'Loading...'
+          errorMssg.innerText = ''
+          const imageForEach = new Promise((resolve, reject) => {
+            channelObj.contents.forEach((block, i, array) => {
+              if (block.image && !block.image.content_type.includes('gif')) {
+                const canvas = document.createElement('canvas')
+                const ctx = canvas.getContext('2d')
+                const art = new Image()
+                art.crossOrigin = 'Anonymous'
+                art.src = block.image.original.url;
+                art.onload = async () => {
+                  canvas.width = art.width
+                  canvas.height = art.height
+                  ctx.drawImage(art, 0, 0)
+                  const imageData = ctx.getImageData(0, 0, art.width, art.height)
+                  const newBytes = await encode(canvas, ctx, imageData)
+                  block.image.hash = newBytes;
+                  count++;
+                  if (count == array.length) resolve();
+                }
+              } else {
+                count++;
+                if (count == array.length) resolve();
+              }
+            })
+          })
+
+          imageForEach.then(() => {
+            const messageObj = {pluginMessage: {type: 'req', payload: channelObj}};
+            btn.innerText = 'Loaded :)'
+            parent.postMessage(messageObj, '*')
+          })
+        }
+      };
+      request.send()
+    } else {
+      errorMssg.innerText = "Input was left blank. Try entering a channel's slug."
+    }
   })
 
   // window.onmessage = async (event) => {
