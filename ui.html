@@ -1,20 +1,3 @@
-<!-- <p>Count: <input id="count" value="5"></p>
-<button id="create">Create</button>
-<button id="cancel">Cancel</button>
-<script>
-
-document.getElementById('create').onclick = () => {
-  const textbox = document.getElementById('count');
-  const count = parseInt(textbox.value, 10);
-  parent.postMessage({ pluginMessage: { type: 'create-rectangles', count } }, '*')
-}
-
-document.getElementById('cancel').onclick = () => {
-  parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*')
-}
-
-</script> -->
-
 <style>
   body {
     padding: 0.5rem;
@@ -206,25 +189,4 @@ document.getElementById('cancel').onclick = () => {
       errorMssg.innerText = "Input was left blank. Try entering a channel's slug."
     }
   })
-
-  // window.onmessage = async (event) => {
-  //   if (event.data.pluginMessage.type === 'handleImage') {
-  //     if (event.data.pluginMessage.image) {
-  //       const canvas = document.createElement('canvas')
-  //       const ctx = canvas.getContext('2d')
-  //       const art = new Image()
-  //       art.crossOrigin = 'Anonymous'
-  //       art.src = event.data.pluginMessage.image
-  //       art.onload = async () => {
-  //         canvas.width = art.width
-  //         canvas.height = art.height
-  //         ctx.drawImage(art, 0, 0)
-  //         const imageData = ctx.getImageData(0, 0, art.width, art.height)
-
-  //         const newBytes = await encode(canvas, ctx, imageData)
-  //         parent.postMessage({pluginMessage: { type: 'img', bytes: newBytes, rectId: event.data.pluginMessage.rectId, frameId: event.data.pluginMessage.frameId }}, '*')
-  //       }
-  //     }
-  //   }
-  // }
 </script>
