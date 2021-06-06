@@ -1,0 +1,113 @@
+<!-- <p>Count: <input id="count" value="5"></p>
+<button id="create">Create</button>
+<button id="cancel">Cancel</button>
+<script>
+
+document.getElementById('create').onclick = () => {
+  const textbox = document.getElementById('count');
+  const count = parseInt(textbox.value, 10);
+  parent.postMessage({ pluginMessage: { type: 'create-rectangles', count } }, '*')
+}
+
+document.getElementById('cancel').onclick = () => {
+  parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*')
+}
+
+</script> -->
+
+<h1>are.na mood board</h1>
+
+<div>
+  <p>Enter in the slug of any of your channels and we'll populate the figma page with all the blocks!</p>
+
+  <label for="channel">Channel slug</label>
+  <input type="text" id="channel">
+
+  <button id="submit">Submit</button>
+</div>
+
+<script>
+
+  async function encode(canvas, ctx, imageData) {
+    ctx.putImageData(imageData, 0, 0)
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(blob => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(new Uint8Array(reader.result))
+        reader.onerror = () => reject(new Error('Could not read from blob'))
+        reader.readAsArrayBuffer(blob)
+      })
+    })
+  }
+
+  const textbox = document.getElementById('channel');
+  const btn = document.getElementById('submit');
+
+  let channelSlug = '';
+
+  btn.addEventListener('click', async () => {
+    channelSlug = textbox.value;
+
+    const arenaUrl = `https://api.are.na/v2/channels/${channelSlug}?per=10`;
+
+    var request = new XMLHttpRequest()
+    request.overrideMimeType("application/json");
+    request.open('GET', arenaUrl);
+    request.onload = async () => {
+      const channelObj = JSON.parse(request.responseText);
+      let count = 0;
+
+      const imageForEach = new Promise((resolve, reject) => {
+        channelObj.contents.forEach((block, i, array) => {
+          if (block.image && !block.image.content_type.includes('gif')) {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')
+            const art = new Image()
+            art.crossOrigin = 'Anonymous'
+            art.src = block.image.original.url;
+            art.onload = async () => {
+              canvas.width = art.width
+              canvas.height = art.height
+              ctx.drawImage(art, 0, 0)
+              const imageData = ctx.getImageData(0, 0, art.width, art.height)
+              const newBytes = await encode(canvas, ctx, imageData)
+              block.image.hash = newBytes;
+              count++;
+              if (count == array.length) resolve();
+            }
+          } else {
+            count++;
+            if (count == array.length) resolve();
+          }
+        })
+      })
+
+      imageForEach.then(() => {
+        const messageObj = {pluginMessage: {type: 'req', payload: channelObj}};
+        parent.postMessage(messageObj, '*')
+      })
+    };
+    request.send()
+  })
+
+  // window.onmessage = async (event) => {
+  //   if (event.data.pluginMessage.type === 'handleImage') {
+  //     if (event.data.pluginMessage.image) {
+  //       const canvas = document.createElement('canvas')
+  //       const ctx = canvas.getContext('2d')
+  //       const art = new Image()
+  //       art.crossOrigin = 'Anonymous'
+  //       art.src = event.data.pluginMessage.image
+  //       art.onload = async () => {
+  //         canvas.width = art.width
+  //         canvas.height = art.height
+  //         ctx.drawImage(art, 0, 0)
+  //         const imageData = ctx.getImageData(0, 0, art.width, art.height)
+
+  //         const newBytes = await encode(canvas, ctx, imageData)
+  //         parent.postMessage({pluginMessage: { type: 'img', bytes: newBytes, rectId: event.data.pluginMessage.rectId, frameId: event.data.pluginMessage.frameId }}, '*')
+  //       }
+  //     }
+  //   }
+  // }
+</script>
