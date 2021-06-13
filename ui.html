@@ -159,6 +159,11 @@
                 const ctx = canvas.getContext('2d')
                 const art = new Image()
                 art.crossOrigin = 'Anonymous'
+                art.addEventListener('error', () => {
+                  count++;
+                  if (count == array.length) resolve();
+                  return null;
+                })
                 art.src = block.image.original.url;
                 art.onload = async () => {
                   canvas.width = art.width
@@ -178,7 +183,12 @@
           })
 
           imageForEach.then(() => {
-            const messageObj = {pluginMessage: {type: 'req', payload: channelObj}};
+            filteredChannelObj = channelObj;
+            filteredChannelObj.contents = channelObj.contents.filter((block) => {
+              if (block.image && block.image.hash) return block;
+              else if (!block.image) return block;
+            })
+            const messageObj = {pluginMessage: {type: 'req', payload: filteredChannelObj}};
             btn.innerText = 'Loaded :)'
             parent.postMessage(messageObj, '*')
           })

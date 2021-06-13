@@ -34,7 +34,10 @@ figma.ui.onmessage = async (msg) => {
 
           await figma.loadFontAsync(text.fontName as FontName)
           text.characters = block.source.url;
-          if (text.characters.length > 120) {
+          text.setRangeHyperlink(0, text.characters.length, { type: 'URL', value: block.source.url});
+          if (text.characters.length > 200) {
+            text.fontSize = 14;
+          } else if (text.characters.length > 120) {
             text.fontSize = 16;
           } else {
             text.fontSize = 20;
