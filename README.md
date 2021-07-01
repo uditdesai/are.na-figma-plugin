@@ -14,4 +14,10 @@ Figma plugin that imports the first 50 blocks from any public Are.na channel int
 - Using an image in Figma requires encoding the image into a buffer which takes time so the plugin can be slow sometimes
 - The plugin can only fetch data from public channels because there's no user authentication yet
 
+## Important Links
+
+Figma Plugin docs: https://www.figma.com/plugin-docs/intro/
+
+Are.na dev docs: https://dev.are.na/documentation/channels
+
 
